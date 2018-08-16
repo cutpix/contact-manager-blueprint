@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
-import { Http, Headers, Request, RequestOptions, RequestMethod, Response } from '@angular/http';
-import { throwError } from 'rxjs';
+import { HttpClient, HttpHeaders, HttpResponse, HttpErrorResponse } from '@angular/common/http';
+
+import { Observable, throwError } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 
 import { environment } from '../../environments/environment';
@@ -13,50 +14,36 @@ export class ApiService {
 
   private baseUrl = environment.apiUrl;
 
-  constructor(private http: Http, private auth: AuthService) { }
+  constructor(private httpClient: HttpClient, private auth: AuthService) { }
 
-  get(url: string) {
-    return this.request(url, RequestMethod.Get);
-  }
+  public post<T>(url: string, body: any): Observable<T> {
+    const path = `${this.baseUrl}/${url}`;
 
-  post(url: string, body: any) {
-    return this.request(url, RequestMethod.Post, body);
-  }
+    const headers = new HttpHeaders()
+      .set('Content-Type', 'application/json')
+      .set('Authorization', `Bearer ${this.auth.getToken()}`)
+      .set('Audience', 'Any');
 
-  request(url: string, method: RequestMethod, body?: Object) {
-    const headers = new Headers();
-    headers.append('Content-Type', 'application/json');
-    headers.append('Audience', 'Any');
-    headers.append('Authorization', `Bearer ${this.auth.getToken()}`);
+    const options = { headers };
 
-    const requestOptions = new RequestOptions({
-      url: `${this.baseUrl}/${url}`,
-      method: method,
-      headers: headers
-    });
-
-    if (body) {
-      requestOptions.body = body;
-    }
-
-    const request = new Request(requestOptions);
-
-    return this.http.request(request)
+    return this.httpClient.post<T>(path, body, options)
       .pipe(
-        map((res: Response) => res.json()),
-        catchError((res: Response) => this.onRequestError(res))
+        map((res: HttpResponse<T>) => res),
+        catchError((res: HttpErrorResponse) => this.onRequestError(res))
       );
   }
 
-  onRequestError(res: Response) {
+  onRequestError(res: HttpErrorResponse) {
     const statusCode = res.status;
-    const body = res.json();
+    const body = res.error;
 
     const error = {
       statusCode: statusCode,
-      error: body.error
+      error: body.error,
+      description: body.error_description
     };
 
     return throwError(error);
   }
+
 }

@@ -4,6 +4,8 @@ import { NgForm } from '@angular/forms';
 import { ApiService } from '../services/api.service';
 import { AuthService } from '../services/auth.service';
 
+import { JwtSecurityToken } from '../models/jwt-security-token';
+
 @Component({
   selector: 'cm-login',
   templateUrl: './login.component.html',
@@ -24,7 +26,7 @@ export class LoginComponent implements OnInit {
 
     const payload = `grant_type=password&username=${values.username}&password=${values.password}`;
 
-    this.api.post('oauth2/token', payload)
+    this.api.post<JwtSecurityToken>('oauth2/token', payload)
       .subscribe(data => {
         this.auth.setToken(data.access_token);
         this.router.navigate(['/contacts']);
